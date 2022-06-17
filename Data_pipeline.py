@@ -69,5 +69,5 @@ def noisy(img_name):
 #load 
 
 
-print('Hello')
+print('Hello World')
 print(cv2.__version__)
