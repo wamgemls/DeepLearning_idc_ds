@@ -18,7 +18,19 @@ import numpy as np
 from skimage.util import random_noise
 
 
+a = np.array([40,2,25,4,5,6])
+b = np.array([20,2,3,4,5,6])
 
-DS_lbl= np.ones(5)
+#seed = np.random.randint(0, 10000)
+#np.random.seed(seed)
+#np.random.shuffle(a)
+#np.random.shuffle(b)
 
-print(DS_lbl)
+s = np.arange(a.shape[0])
+np.random.shuffle(s)
+
+a = a[s]
+b =b[s]
+
+print(a)
+print(b)
