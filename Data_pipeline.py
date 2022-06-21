@@ -1,3 +1,5 @@
+from matplotlib import image
+import pandas as pd
 from matplotlib.pyplot import axis
 import numpy as np
 from glob import glob
@@ -19,11 +21,11 @@ $1 = imblearn Package
 """
 
 balancing_strategy = 0
-sample_size = 700
+sample_size = 20
 test_fac = 0.2
 
-syn_DS_size_c0 = 350
-syn_DS_size_c1 = 500
+syn_DS_size_c0 = 500
+syn_DS_size_c1 = 200
 
 
 if (sample_size % 2):
@@ -51,55 +53,59 @@ print("IDC (+)\n\n", file_classOne[0:5], '\n')
 file_classZero = file_classZero[0:syn_DS_size_c0]
 file_classOne = file_classOne[0:syn_DS_size_c1]
 
-def filePie(file_classZero, file_classOne):
-    labels = 'IDC (-) ' + str(len(file_classZero)) , 'IDC (+) ' + str(len(file_classOne))
-    sizes = [len(file_classZero), len(file_classOne)]
-    colors =['lightskyblue', 'red']
+def filePie(size0, size1,title):
+    labels = 'IDC (-) ' + str(size0) , 'IDC (+) ' + str(size1)
+    sizes = [size0, size1]
+    colors =['green', 'red']
     plt.figure()
-    plt.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', shadow=False, startangle=30)
+    plt.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', shadow=False, startangle=90)
     plt.axis('equal')
-
+    plt.suptitle(title, fontsize=16)
 
 
 #Image Processing 1
 
-def read_img(file_image):
-    img = cv2.imread(file_image)
-    img = cv2.resize(img, (50,50))
-    return img
-
-def fileplotImg(file_image):
+def giveImg(file_image):
     image = cv2.imread(file_image)
     image = cv2.resize(image, (50,50))
+    return image
     
-    plt.figure()
-    plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+def preprocImg(image):
+    image = image/255.0
+    imgFlat = image.reshape(-1)
+    return imgFlat
 
-def plotImg(image):
+def plotImgFile(file_image):
+    image = cv2.imread(file_image)
     image = cv2.resize(image, (50,50))
-    
     plt.figure()
     plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
 
+def plotImgSeq(file_classZero,file_classOne): 
+    
+    #to be set
+
+    return
+                
 
 #Image Processing 2
 
 def flip1(file_img):
-    img = read_img(file_img)
+    img = giveImg(file_img)
     augmented_img = np.fliplr(img)
     return augmented_img
 
 def flip2(file_img):
-    img = read_img(file_img)
+    img = giveImg(file_img)
     augmented_img = np.flipud(img)
     return augmented_img
 
 def noisy(file_img):
-    img = read_img(file_img)
-    noisy = np.random.poisson(img / 255.0 * 400) / 400 * 255
-    noisy = cv2.resize(noisy, (50,50))
-    noisy = noisy.astype(np.uint8)
-    return noisy
+    img = giveImg(file_img)
+    noisy_img = np.random.poisson(img / 255.0 * 400) / 400 * 255
+    noisy_img = cv2.resize(noisy_img, (50,50))
+    noisy_img = noisy_img.astype(np.uint8)
+    return noisy_img
 
 augmentlist = [flip1, flip2, noisy]
 
@@ -116,6 +122,7 @@ def manualoversamp(file_osclass,file_nclass):
         augfunc = random.choice(augmentlist)
         random_image= random.choice(file_osclass)
         img = augfunc(random_image)
+        img = preprocImg(img)
         os_images.append(img)
 
     return os_images
@@ -124,17 +131,12 @@ def manualoversamp(file_osclass,file_nclass):
 
 def balance_imblearn(X_train,X_test,Y_train,Y_test):
    
-    X_trainShape = X_train.shape[1]*X_train.shape[2]*X_train.shape[3]
-    X_testShape = X_test.shape[1]*X_test.shape[2]*X_test.shape[3]
-    X_trainFlat = X_train.reshape(X_train.shape[0], X_trainShape)
-    X_testFlat = X_test.reshape(X_test.shape[0], X_testShape)
-
-    ros = RandomOverSampler(sampling_strategy='auto')
+    imb = RandomOverSampler(sampling_strategy='auto')
     #ros = RandomUnderSampler(sampling_strategy='auto')
-    X_trainRos, Y_trainRos = ros.fit_sample(X_trainFlat, Y_train)
-    X_testRos, Y_testRos = ros.fit_sample(X_testFlat, Y_test)
+    X_train_imb, Y_train_imb = imb.fit_sample(X_train, Y_train)
+    X_test_imb, Y_test_imb = imb.fit_sample(X_test, Y_test)
 
-    return X_trainRos, X_testRos, Y_trainRos, Y_testRos
+    return X_train_imb, X_test_imb, Y_train_imb, Y_test_imb
 
 
 #Dataset Preparation
@@ -142,7 +144,9 @@ def balance_imblearn(X_train,X_test,Y_train,Y_test):
 def file2img(filelist):
     DS_img = []
     for file in filelist:
-        DS_img.append(read_img(file))
+        img=giveImg(file)
+        img=preprocImg(img)
+        DS_img.append(img)
     
     return DS_img
 
@@ -178,30 +182,15 @@ def oneHotencode(Y_train,Y_test):
     return Y_trainHot, Y_testHot
 
 
-
-
-
-
-random_image0= random.choice(file_classZero)
-random_image1= random.choice(file_classOne)
-
-fileplotImg(random_image0)
-fileplotImg(random_image1)
-
-
-
 #main
 
 if halfsample <= len(file_classZero) and halfsample <= len(file_classOne):
     #enough Sample
     print('Enough Balanced Data - Strategy A')
 
-    file_classZero = file_classZero[0:halfsample]
-    file_classOne = file_classOne[0:halfsample]
+    img_classZero = file2img(file_classZero[0:halfsample])
+    img_classOne = file2img(file_classOne[0:halfsample])
 
-    img_classZero = file2img(file_classZero)
-    img_classOne = file2img(file_classOne)
-    
     X_train, X_test, Y_train, Y_test = datasetgen(img_classZero, img_classOne, test_fac)
 
     Y_trainHot, Y_testHot = oneHotencode(Y_train,Y_test)
@@ -233,6 +222,7 @@ elif halfsample > len(file_classZero) and halfsample <= len(file_classOne):
     img_classZero = file2img(file_classZero)
     img_classOne = file2img(file_classOne[0:halfsample])
     
+   
     if (balancing_strategy==0):
         print('Unbalanced Data => IMB Oversampling ClassZero: Strategy C0')
 
@@ -257,12 +247,31 @@ print(X_train.shape)
 print(X_test.shape)
 print(Y_train.shape)
 print(Y_trainHot.shape)
-print(Y_test.shape)
-print(Y_testHot.shape)
+print(Y_test)
+print(Y_testHot)
+
+
+#Final Data inspection
+
+filePie(len(file_classZero), len(file_classOne),'Data: Raw')
+
+filePie(np.sum(Y_train)+np.sum(Y_test), (len(Y_train)+len(Y_test))-(np.sum(Y_train)+np.sum(Y_test)),'Data: Processed')
+
+plotImgSeq(file_classZero,file_classOne)
 
 
 
-#plt.show()
+"""
+X2=df["images"]
+Y2=df["labels"]
+X2=np.array(X2)
+imgs0=[]
+imgs1=[]
+imgs0 = X2[Y2==0] # (0 = no IDC, 1 = IDC)
+imgs1 = X2[Y2==1]
+"""
+
+plt.show()
 
 print('Hello World')
 print(cv2.__version__)
