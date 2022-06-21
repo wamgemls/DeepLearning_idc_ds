@@ -20,12 +20,12 @@ $0 = Manual Oversampling
 $1 = imblearn Package
 """
 
-balancing_strategy = 0
+balancing_strategy = 1
 sample_size = 20
 test_fac = 0.2
 
 syn_DS_size_c0 = 500
-syn_DS_size_c1 = 200
+syn_DS_size_c1 = 5
 
 
 if (sample_size % 2):
@@ -38,17 +38,11 @@ halfsample=int(sample_size/2) # TwoClasses -> 50/50 dataset
 
 image_raw = glob('../IDC_regular_ps50_idx5/**/*.png', recursive=True)
 
-for filename in image_raw[0:10]:
-    print(filename)
-
 patternZero = '*class0.png'
 patternOne = '*class1.png'
 
 file_classZero = fnmatch.filter(image_raw, patternZero)
 file_classOne = fnmatch.filter(image_raw, patternOne)
-
-print("IDC (-)\n\n", file_classZero[0:5], '\n')
-print("IDC (+)\n\n", file_classOne[0:5], '\n')
 
 file_classZero = file_classZero[0:syn_DS_size_c0]
 file_classOne = file_classOne[0:syn_DS_size_c1]
@@ -62,6 +56,15 @@ def filePie(size0, size1,title):
     plt.axis('equal')
     plt.suptitle(title, fontsize=16)
 
+def plotImgFile(file_image):
+    image = cv2.imread(file_image)
+    image = cv2.resize(image, (50,50))
+    plt.figure()
+    plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+
+def plotImgSeq(file_classZero,file_classOne): 
+    #to be set
+    return
 
 #Image Processing 1
 
@@ -74,19 +77,6 @@ def preprocImg(image):
     image = image/255.0
     imgFlat = image.reshape(-1)
     return imgFlat
-
-def plotImgFile(file_image):
-    image = cv2.imread(file_image)
-    image = cv2.resize(image, (50,50))
-    plt.figure()
-    plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-
-def plotImgSeq(file_classZero,file_classOne): 
-    
-    #to be set
-
-    return
-                
 
 #Image Processing 2
 
@@ -254,9 +244,7 @@ print(Y_testHot.shape)
 #Final Data inspection
 
 filePie(len(file_classZero), len(file_classOne),'Data: Raw')
-
 filePie(np.sum(Y_train)+np.sum(Y_test), (len(Y_train)+len(Y_test))-(np.sum(Y_train)+np.sum(Y_test)),'Data: Processed')
-
 plotImgSeq(file_classZero,file_classOne)
 
 
