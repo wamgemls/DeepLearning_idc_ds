@@ -247,8 +247,8 @@ print(X_train.shape)
 print(X_test.shape)
 print(Y_train.shape)
 print(Y_trainHot.shape)
-print(Y_test)
-print(Y_testHot)
+print(Y_test.shape)
+print(Y_testHot.shape)
 
 
 #Final Data inspection
