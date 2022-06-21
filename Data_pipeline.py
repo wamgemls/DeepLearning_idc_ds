@@ -1,31 +1,29 @@
 from matplotlib.pyplot import axis
 import numpy as np
-import pandas as pd
 from glob import glob
 import fnmatch
 import matplotlib.pylab as plt
 import cv2
-import scipy
-import pandas
-import imblearn
 import random
 import tensorflow_datasets as tfds
 from keras.utils.np_utils import to_categorical
 from sklearn.model_selection import train_test_split
 from imblearn.over_sampling import RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
-#from sqlalchemy import false
+
 
 """
 Balancing Strategy:
 $0 = Manual Oversampling
 $1 = imblearn Package
-
 """
 
-balancing_strategy = 1
-sample_size = 500
+balancing_strategy = 0
+sample_size = 700
 test_fac = 0.2
+
+syn_DS_size_c0 = 350
+syn_DS_size_c1 = 500
 
 
 if (sample_size % 2):
@@ -34,7 +32,7 @@ if (sample_size % 2):
 halfsample=int(sample_size/2) # TwoClasses -> 50/50 dataset
 
 
-# Data aquisition/Analysis
+#Data Aquisition
 
 image_raw = glob('../IDC_regular_ps50_idx5/**/*.png', recursive=True)
 
@@ -50,6 +48,9 @@ file_classOne = fnmatch.filter(image_raw, patternOne)
 print("IDC (-)\n\n", file_classZero[0:5], '\n')
 print("IDC (+)\n\n", file_classOne[0:5], '\n')
 
+file_classZero = file_classZero[0:syn_DS_size_c0]
+file_classOne = file_classOne[0:syn_DS_size_c1]
+
 def filePie(file_classZero, file_classOne):
     labels = 'IDC (-) ' + str(len(file_classZero)) , 'IDC (+) ' + str(len(file_classOne))
     sizes = [len(file_classZero), len(file_classOne)]
@@ -60,13 +61,12 @@ def filePie(file_classZero, file_classOne):
 
 
 
-#Image Processing
+#Image Processing 1
 
-def read_img(img):
-    img = cv2.imread(img)
+def read_img(file_image):
+    img = cv2.imread(file_image)
     img = cv2.resize(img, (50,50))
     return img
-
 
 def fileplotImg(file_image):
     image = cv2.imread(file_image)
@@ -80,6 +80,9 @@ def plotImg(image):
     
     plt.figure()
     plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+
+
+#Image Processing 2
 
 def flip1(file_img):
     img = read_img(file_img)
@@ -100,9 +103,8 @@ def noisy(file_img):
 
 augmentlist = [flip1, flip2, noisy]
 
-
 #Balancing 
-#Manual
+#1_Manual
 
 def manualoversamp(file_osclass,file_nclass):
     
@@ -118,36 +120,24 @@ def manualoversamp(file_osclass,file_nclass):
 
     return os_images
 
-#Imblearn
+#2_Imblearn
 
-def balance_imblearn():
+def balance_imblearn(X_train,X_test,Y_train,Y_test):
    
     X_trainShape = X_train.shape[1]*X_train.shape[2]*X_train.shape[3]
     X_testShape = X_test.shape[1]*X_test.shape[2]*X_test.shape[3]
     X_trainFlat = X_train.reshape(X_train.shape[0], X_trainShape)
     X_testFlat = X_test.reshape(X_test.shape[0], X_testShape)
-    print("X_train Shape: ",X_train.shape)
-    print("X_test Shape: ",X_test.shape)
-    print("X_trainFlat Shape: ",X_trainFlat.shape)
-    print("X_testFlat Shape: ",X_testFlat.shape)
-
 
     ros = RandomOverSampler(sampling_strategy='auto')
     #ros = RandomUnderSampler(sampling_strategy='auto')
     X_trainRos, Y_trainRos = ros.fit_sample(X_trainFlat, Y_train)
     X_testRos, Y_testRos = ros.fit_sample(X_testFlat, Y_test)
 
-    Y_trainRosHot = to_categorical(Y_trainRos, num_classes = 2)
-    Y_testRosHot = to_categorical(Y_testRos, num_classes = 2)
-    #print("X_train: ", X_train.shape)
-    #print("X_trainFlat: ", X_train.shape)
-    print("X_trainRos Shape: ",X_trainRos.shape)
-    print("X_testRos Shape: ",X_testRos.shape)
-    print("Y_trainRosHot Shape: ",Y_trainRosHot.shape)
-    print("Y_testRosHot Shape: ",Y_testRosHot.shape)
+    return X_trainRos, X_testRos, Y_trainRos, Y_testRos
 
 
-#Dataset_prep
+#Dataset Preparation
 
 def file2img(filelist):
     DS_img = []
@@ -156,7 +146,7 @@ def file2img(filelist):
     
     return DS_img
 
-def datasetgen(classZero, classOne, testquo):
+def datasetgen(classZero, classOne, test_fac):
     
     DS_img = []
     DS_lbl = []
@@ -167,21 +157,19 @@ def datasetgen(classZero, classOne, testquo):
     DS_lbl.extend(np.zeros(len(classZero)))
     DS_lbl.extend(np.ones(len(classOne)))
 
-    seed = np.random.randint(0, 10000)
-    np.random.seed(seed)
-    np.random.shuffle(DS_img)
-    np.random.shuffle(DS_lbl)
+    DS_img=np.array(DS_img)
+    DS_lbl=np.array(DS_lbl)
 
-    DS_img=np.array(DS[0])
-    DS_img=DS_img/255.0
-    DS_lbl=np.array(DS[1])
+    #shuffle
+    s = np.arange(DS_img.shape[0])
+    np.random.shuffle(s)
+    DS_img = DS_img[s]
+    DS_lbl = DS_lbl[s] 
 
-    X_train, X_test, Y_train, Y_test = train_test_split(DS_img,DS_lbl,test_size=testquo)
 
-    Y_trainHot = to_categorical(Y_train, num_classes = 2)
-    Y_testHot = to_categorical(Y_test, num_classes = 2)
+    X_train, X_test, Y_train, Y_test = train_test_split(DS_img,DS_lbl,test_size=test_fac)
 
-    return X_train, X_test, Y_train, Y_test, Y_trainHot, Y_testHot
+    return X_train, X_test, Y_train, Y_test
 
 def oneHotencode(Y_train,Y_test):
     Y_trainHot = to_categorical(Y_train, num_classes = 2)
@@ -190,102 +178,91 @@ def oneHotencode(Y_train,Y_test):
     return Y_trainHot, Y_testHot
 
 
+
+
+
+
+random_image0= random.choice(file_classZero)
+random_image1= random.choice(file_classOne)
+
+fileplotImg(random_image0)
+fileplotImg(random_image1)
+
+
+
 #main
 
-if(balancing_strategy==0):
+if halfsample <= len(file_classZero) and halfsample <= len(file_classOne):
+    #enough Sample
+    print('Enough Balanced Data - Strategy A')
+
+    file_classZero = file_classZero[0:halfsample]
+    file_classOne = file_classOne[0:halfsample]
+
+    img_classZero = file2img(file_classZero)
+    img_classOne = file2img(file_classOne)
     
-    file_classZero = file_classZero[0:800]
-    file_classOne = file_classOne[0:300]
+    X_train, X_test, Y_train, Y_test = datasetgen(img_classZero, img_classOne, test_fac)
 
-    if halfsample <= len(file_classZero) and halfsample <= len(file_classOne):
-        file_classZero = file_classZero[0:halfsample]
-        file_classOne = file_classOne[0:halfsample]
+    Y_trainHot, Y_testHot = oneHotencode(Y_train,Y_test)
 
-        img_classZero = file2img(file_classZero)
-        img_classOne = file2img(file_classOne)
+
+elif halfsample <= len(file_classZero) and halfsample > len(file_classOne):
         
-        DS = datasetgen(img_classZero, img_classOne)
+    img_classZero = file2img(file_classZero[0:halfsample])
+    img_classOne = file2img(file_classOne)
+    
+    if (balancing_strategy==0):
+        print('Unbalanced Data => Manual Oversampling ClassOne: Strategy B0')
 
-
-    elif halfsample <= len(file_classZero) and halfsample > len(file_classOne):
-        #manualoversamp ClassOne
-        img_classZero = file2img(file_classZero[0:halfsample])
-        img_classOne = file2img(file_classOne)
-        
         os_data = manualoversamp(file_classOne,file_classZero[0:halfsample])
         img_classOne.extend(os_data)
-        
-        DS = datasetgen(img_classZero, img_classOne)
+        X_train, X_test, Y_train, Y_test = datasetgen(img_classZero, img_classOne, test_fac)
+
+    if (balancing_strategy==1):
+        print('Unbalanced Data => IMB Oversampling ClassOne: Strategy B1')
+
+        X_train, X_test, Y_train, Y_test = datasetgen(img_classZero, img_classOne, test_fac)
+        X_train, X_test, Y_train, Y_test = balance_imblearn(X_train,X_test,Y_train,Y_test)
+
+    Y_trainHot, Y_testHot = oneHotencode(Y_train,Y_test)
 
 
-    elif halfsample > len(file_classZero) and halfsample <= len(file_classOne):
-        #manualoversamp ClassZero
-        img_classZero = file2img(file_classZero[0:halfsample])
-        img_classOne = file2img(file_classOne)
-        
+elif halfsample > len(file_classZero) and halfsample <= len(file_classOne):
+    
+    img_classZero = file2img(file_classZero)
+    img_classOne = file2img(file_classOne[0:halfsample])
+    
+    if (balancing_strategy==0):
+        print('Unbalanced Data => IMB Oversampling ClassZero: Strategy C0')
+
         os_data = manualoversamp(file_classZero,file_classOne[0:halfsample])
         img_classZero.extend(os_data)
-        
-        DS = datasetgen(img_classZero, img_classOne)
+        X_train, X_test, Y_train, Y_test = datasetgen(img_classZero, img_classOne, test_fac)
 
-    else:
-        print('not enough data')
+    if (balancing_strategy==1):
+        print('Unbalanced Data => IMB Oversampling ClassZero: Strategy C1')
 
-elif (balancing_strategy==1):
+        X_train, X_test, Y_train, Y_test = datasetgen(img_classZero, img_classOne, test_fac)
+        X_train, X_test, Y_train, Y_test = balance_imblearn(X_train,X_test,Y_train,Y_test)
 
-    img_classZero = file2img(file_classZero[0:halfsample])
-    img_classOne = file2img(file_classOne[0:halfsample])
+    Y_trainHot, Y_testHot = oneHotencode(Y_train,Y_test)
 
-    DS = datasetgen(img_classZero, img_classOne, test_fac)
-
-    
-
-
-
-
-
-
+else:
+    #not enough data
+    print('not enough data')
 
 
 print(X_train.shape)
 print(X_test.shape)
-
-
 print(Y_train.shape)
-print(Y_test.shape)
 print(Y_trainHot.shape)
+print(Y_test.shape)
 print(Y_testHot.shape)
-
-
-#Final Inspection
-"""
-imgs0 = DS_img
-imgs1 = DS_img
-imgs0[DS_lbl==0] = 1
-imgs0[DS_lbl==1] = 0
-imgs1[DS_lbl==1] = 1
-imgs1[DS_lbl==0] = 0
-
-print(np.sum(imgs0))
-print(np.sum(imgs1))
-"""
-#
-
-
-
-
-
-plt.figure()
-plt.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', shadow=False, startangle=30)
-plt.axis('equal')
-
 
 
 
 #plt.show()
-
-#while len[]
-
 
 print('Hello World')
 print(cv2.__version__)
