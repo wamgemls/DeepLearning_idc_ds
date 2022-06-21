@@ -16,7 +16,7 @@ from imblearn.over_sampling import RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
 #from sqlalchemy import false
 
-sample_size = 500
+
 
 """
 Balancing Strategy:
@@ -24,8 +24,13 @@ $0 = Manual Oversampling
 $1 = imblearn Package
 
 """
+Balancing_strategy = 1
+sample_size = 500
 
-Balancing_strategy = 0
+if (sample_size % 2):
+        sample_size = sample_size-1
+
+halfsample=int(sample_size/2) # TwoClasses -> 50/50 dataset
 
 # Data aquisition/Analysis
 
@@ -149,47 +154,55 @@ def manualoversamp(file_osclass,file_nclass):
     return os_images
 
 
-if (sample_size % 2):
-    sample_size = sample_size-1
-
-halfsample=int(sample_size/2)
-
-file_classZero = file_classZero[0:800]
-file_classOne = file_classOne[0:300]
-
-if halfsample <= len(file_classZero) and halfsample <= len(file_classOne):
-    file_classZero = file_classZero[0:halfsample]
-    file_classOne = file_classOne[0:halfsample]
-
-    img_classZero = file2img(file_classZero)
-    img_classOne = file2img(file_classOne)
+if(Balancing_strategy==0):
     
-    DS = datasetgen(img_classZero, img_classOne)
+    file_classZero = file_classZero[0:800]
+    file_classOne = file_classOne[0:300]
+
+    if halfsample <= len(file_classZero) and halfsample <= len(file_classOne):
+        file_classZero = file_classZero[0:halfsample]
+        file_classOne = file_classOne[0:halfsample]
+
+        img_classZero = file2img(file_classZero)
+        img_classOne = file2img(file_classOne)
+        
+        DS = datasetgen(img_classZero, img_classOne)
 
 
-elif halfsample <= len(file_classZero) and halfsample > len(file_classOne):
-    #manualoversamp ClassOne
+    elif halfsample <= len(file_classZero) and halfsample > len(file_classOne):
+        #manualoversamp ClassOne
+        img_classZero = file2img(file_classZero[0:halfsample])
+        img_classOne = file2img(file_classOne)
+        
+        os_data = manualoversamp(file_classOne,file_classZero[0:halfsample])
+        img_classOne.extend(os_data)
+        
+        DS = datasetgen(img_classZero, img_classOne)
+
+
+    elif halfsample > len(file_classZero) and halfsample <= len(file_classOne):
+        #manualoversamp ClassZero
+        img_classZero = file2img(file_classZero[0:halfsample])
+        img_classOne = file2img(file_classOne)
+        
+        os_data = manualoversamp(file_classZero,file_classOne[0:halfsample])
+        img_classZero.extend(os_data)
+        
+        DS = datasetgen(img_classZero, img_classOne)
+
+    else:
+        print('not enough data')
+
+elif (Balancing_strategy==1):
+
     img_classZero = file2img(file_classZero[0:halfsample])
-    img_classOne = file2img(file_classOne)
-    
-    os_data = manualoversamp(file_classOne,file_classZero[0:halfsample])
-    img_classOne.extend(os_data)
-    
+    img_classOne = file2img(file_classOne[0:halfsample])
+
     DS = datasetgen(img_classZero, img_classOne)
 
 
-elif halfsample > len(file_classZero) and halfsample <= len(file_classOne):
-    #manualoversamp ClassZero
-    img_classZero = file2img(file_classZero[0:halfsample])
-    img_classOne = file2img(file_classOne)
-    
-    os_data = manualoversamp(file_classZero,file_classOne)
-    img_classZero.extend(os_data)
-    
-    DS = datasetgen(img_classZero, img_classOne)
 
-else:
-    print('not enough data')
+
 
 
 DS_img=np.array(DS[0])
@@ -211,20 +224,32 @@ print(Y_trainHot.shape)
 print(Y_testHot.shape)
 
 
+#Final Inspection
+
+imgs0 = DS_img
+imgs1 = DS_img
+imgs0[DS_lbl==0] = 1
+imgs0[DS_lbl==1] = 0
+imgs1[DS_lbl==1] = 1
+imgs1[DS_lbl==0] = 0
+
+print(np.sum(imgs0))
+print(np.sum(imgs1))
+
 # Deal with imbalanced class sizes below
 # Make Data 1D for compatability upsampling methods
 X_trainShape = X_train.shape[1]*X_train.shape[2]*X_train.shape[3]
 X_testShape = X_test.shape[1]*X_test.shape[2]*X_test.shape[3]
 X_trainFlat = X_train.reshape(X_train.shape[0], X_trainShape)
 X_testFlat = X_test.reshape(X_test.shape[0], X_testShape)
-#print("X_train Shape: ",X_train.shape)
-#print("X_test Shape: ",X_test.shape)
-#print("X_trainFlat Shape: ",X_trainFlat.shape)
-#print("X_testFlat Shape: ",X_testFlat.shape)
+print("X_train Shape: ",X_train.shape)
+print("X_test Shape: ",X_test.shape)
+print("X_trainFlat Shape: ",X_trainFlat.shape)
+print("X_testFlat Shape: ",X_testFlat.shape)
 
 
-#ros = RandomOverSampler(ratio='auto')
-ros = RandomUnderSampler(sampling_strategy='auto')
+ros = RandomOverSampler(sampling_strategy='auto')
+#ros = RandomUnderSampler(sampling_strategy='auto')
 X_trainRos, Y_trainRos = ros.fit_sample(X_trainFlat, Y_train)
 X_testRos, Y_testRos = ros.fit_sample(X_testFlat, Y_test)
 
@@ -232,11 +257,11 @@ X_testRos, Y_testRos = ros.fit_sample(X_testFlat, Y_test)
 Y_trainRosHot = to_categorical(Y_trainRos, num_classes = 2)
 Y_testRosHot = to_categorical(Y_testRos, num_classes = 2)
 #print("X_train: ", X_train.shape)
-#print("X_trainFlat: ", X_trainFlat.shape)
-#print("X_trainRos Shape: ",X_trainRos.shape)
-#print("X_testRos Shape: ",X_testRos.shape)
-#print("Y_trainRosHot Shape: ",Y_trainRosHot.shape)
-#print("Y_testRosHot Shape: ",Y_testRosHot.shape)
+#print("X_trainFlat: ", X_train.shape)
+print("X_trainRos Shape: ",X_trainRos.shape)
+print("X_testRos Shape: ",X_testRos.shape)
+print("Y_trainRosHot Shape: ",Y_trainRosHot.shape)
+print("Y_testRosHot Shape: ",Y_testRosHot.shape)
 
 
 """
