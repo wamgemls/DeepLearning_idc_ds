@@ -19,17 +19,11 @@ $1 = imblearn Package
 """
 
 balancing_strategy = 0
-sample_size = 200
+sample_size = 202
 test_fac = 0.2
 
 c0_size = 500
-c1_size = 50
-
-
-if (sample_size % 2):
-        sample_size = sample_size-1
-
-halfsample=int(sample_size/2) # TwoClasses -> 50/50 dataset
+c1_size = 200
 
 
 #Data Aquisition
@@ -60,8 +54,14 @@ def plotImgFile(file_image):
     plt.figure()
     plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
 
-def plotImgSeq(file_classZero,file_classOne): 
-    #to be set
+def plotcompareImg(imageA,titleA,imageB,titleB): 
+    plt.figure()
+    plt.subplot(1,2,1)
+    plt.title(titleA)
+    plt.imshow(cv2.cvtColor(imageA, cv2.COLOR_BGR2RGB))
+    plt.subplot(1,2,2)
+    plt.title(titleB)
+    plt.imshow(cv2.cvtColor(imageB, cv2.COLOR_BGR2RGB))
     return
 
 #Image Processing 1
@@ -128,6 +128,8 @@ def balance_imblearn(X_train,X_test,Y_train,Y_test):
 
 
 #Dataset Preparation
+
+halfsample=int(sample_size/2) # TwoClasses -> 50/50 dataset
 
 def filelist2imglist(filelist):
     DS_img = []
@@ -243,6 +245,7 @@ print(Y_testHot.shape)
 
 filePie(len(file_classZero), len(file_classOne),'Data: Raw')
 filePie(np.sum(Y_train)+np.sum(Y_test), (len(Y_train)+len(Y_test))-(np.sum(Y_train)+np.sum(Y_test)),'Data: Processed')
-plotImgSeq(file_classZero,file_classOne)
+
+plotcompareImg(giveImg(random.choice(file_classZero)),'IDC (-)',giveImg(random.choice(file_classOne)),'IDC (+)')
 
 plt.show()
