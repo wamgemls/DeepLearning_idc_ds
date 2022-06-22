@@ -19,11 +19,11 @@ $1 = imblearn Package
 """
 
 balancing_strategy = 0
-sample_size = 202
+sample_size = 10000
 test_fac = 0.2
 
-c0_size = 500
-c1_size = 200
+c0_size = 5000
+c1_size = 2000
 
 
 #Data Aquisition
