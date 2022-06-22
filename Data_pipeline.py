@@ -174,8 +174,9 @@ def oneHotencode(Y_train,Y_test):
 
 #main
 
+#enough sample (no over/undersampling needed)
 if halfsample <= len(file_classZero) and halfsample <= len(file_classOne):
-    #enough Sample
+    
     print('Enough Balanced Data - Strategy A')
 
     img_classZero = filelist2imglist(file_classZero[0:halfsample])
@@ -185,7 +186,7 @@ if halfsample <= len(file_classZero) and halfsample <= len(file_classOne):
 
     Y_trainHot, Y_testHot = oneHotencode(Y_train,Y_test)
 
-
+#classOne minor (oversampling ClassOne)
 elif halfsample <= len(file_classZero) and halfsample > len(file_classOne):
         
     img_classZero = filelist2imglist(file_classZero[0:halfsample])
@@ -206,7 +207,7 @@ elif halfsample <= len(file_classZero) and halfsample > len(file_classOne):
 
     Y_trainHot, Y_testHot = oneHotencode(Y_train,Y_test)
 
-
+#classZero minor (oversampling classZero)
 elif halfsample > len(file_classZero) and halfsample <= len(file_classOne):
     
     img_classZero = filelist2imglist(file_classZero)
@@ -228,8 +229,9 @@ elif halfsample > len(file_classZero) and halfsample <= len(file_classOne):
 
     Y_trainHot, Y_testHot = oneHotencode(Y_train,Y_test)
 
+#not enough sample data
 else:
-    #not enough data
+    
     print('not enough data')
 
 
@@ -241,7 +243,7 @@ print(Y_test.shape)
 print(Y_testHot.shape)
 
 
-#Final Data inspection
+#final data inspection
 
 filePie(len(file_classZero), len(file_classOne),'Data: Raw')
 filePie(np.sum(Y_train)+np.sum(Y_test), (len(Y_train)+len(Y_test))-(np.sum(Y_train)+np.sum(Y_test)),'Data: Processed')
