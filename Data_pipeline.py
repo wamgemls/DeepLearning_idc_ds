@@ -1,5 +1,4 @@
 from matplotlib import image
-import pandas as pd
 from matplotlib.pyplot import axis
 import numpy as np
 from glob import glob
@@ -13,19 +12,18 @@ from sklearn.model_selection import train_test_split
 from imblearn.over_sampling import RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
 
-
 """
 Balancing Strategy:
 $0 = Manual Oversampling
 $1 = imblearn Package
 """
 
-balancing_strategy = 1
-sample_size = 20
+balancing_strategy = 0
+sample_size = 200
 test_fac = 0.2
 
-syn_DS_size_c0 = 500
-syn_DS_size_c1 = 5
+c0_size = 500
+c1_size = 50
 
 
 if (sample_size % 2):
@@ -44,8 +42,8 @@ patternOne = '*class1.png'
 file_classZero = fnmatch.filter(image_raw, patternZero)
 file_classOne = fnmatch.filter(image_raw, patternOne)
 
-file_classZero = file_classZero[0:syn_DS_size_c0]
-file_classOne = file_classOne[0:syn_DS_size_c1]
+file_classZero = file_classZero[0:c0_size]
+file_classOne = file_classOne[0:c1_size]
 
 def filePie(size0, size1,title):
     labels = 'IDC (-) ' + str(size0) , 'IDC (+) ' + str(size1)
@@ -131,7 +129,7 @@ def balance_imblearn(X_train,X_test,Y_train,Y_test):
 
 #Dataset Preparation
 
-def file2img(filelist):
+def filelist2imglist(filelist):
     DS_img = []
     for file in filelist:
         img=giveImg(file)
@@ -178,8 +176,8 @@ if halfsample <= len(file_classZero) and halfsample <= len(file_classOne):
     #enough Sample
     print('Enough Balanced Data - Strategy A')
 
-    img_classZero = file2img(file_classZero[0:halfsample])
-    img_classOne = file2img(file_classOne[0:halfsample])
+    img_classZero = filelist2imglist(file_classZero[0:halfsample])
+    img_classOne = filelist2imglist(file_classOne[0:halfsample])
 
     X_train, X_test, Y_train, Y_test = datasetgen(img_classZero, img_classOne, test_fac)
 
@@ -188,8 +186,8 @@ if halfsample <= len(file_classZero) and halfsample <= len(file_classOne):
 
 elif halfsample <= len(file_classZero) and halfsample > len(file_classOne):
         
-    img_classZero = file2img(file_classZero[0:halfsample])
-    img_classOne = file2img(file_classOne)
+    img_classZero = filelist2imglist(file_classZero[0:halfsample])
+    img_classOne = filelist2imglist(file_classOne)
     
     if (balancing_strategy==0):
         print('Unbalanced Data => Manual Oversampling ClassOne: Strategy B0')
@@ -209,8 +207,8 @@ elif halfsample <= len(file_classZero) and halfsample > len(file_classOne):
 
 elif halfsample > len(file_classZero) and halfsample <= len(file_classOne):
     
-    img_classZero = file2img(file_classZero)
-    img_classOne = file2img(file_classOne[0:halfsample])
+    img_classZero = filelist2imglist(file_classZero)
+    img_classOne = filelist2imglist(file_classOne[0:halfsample])
     
    
     if (balancing_strategy==0):
@@ -247,19 +245,4 @@ filePie(len(file_classZero), len(file_classOne),'Data: Raw')
 filePie(np.sum(Y_train)+np.sum(Y_test), (len(Y_train)+len(Y_test))-(np.sum(Y_train)+np.sum(Y_test)),'Data: Processed')
 plotImgSeq(file_classZero,file_classOne)
 
-
-
-"""
-X2=df["images"]
-Y2=df["labels"]
-X2=np.array(X2)
-imgs0=[]
-imgs1=[]
-imgs0 = X2[Y2==0] # (0 = no IDC, 1 = IDC)
-imgs1 = X2[Y2==1]
-"""
-
 plt.show()
-
-print('Hello World')
-print(cv2.__version__)
