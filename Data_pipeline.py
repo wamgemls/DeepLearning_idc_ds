@@ -18,11 +18,11 @@ $0 = Manual Oversampling
 $1 = imblearn Package
 """
 
-balancing_strategy = 0
-sample_size = 1000
+balancing_strategy = 1
+sample_size = 1500
 test_fac = 0.2
 
-c0_size = 700
+c0_size = 800
 c1_size = 300
 
 
@@ -73,7 +73,8 @@ def giveImg(file_image):
     
 def preprocImg(image):
     image = image/255.0
-    #image = image.reshape(-1)
+    image = image.reshape(-1)
+    #image = image.reshape(50,50,3)
     return image
 
 #Image Processing 2
@@ -117,14 +118,13 @@ def manualoversamp(file_osclass,file_nclass):
 
 #2_Imblearn
 
-def balance_imblearn(X_train,X_test,Y_train,Y_test):
+def balance_imblearn(DS_img, DS_lbl):
    
     imb = RandomOverSampler(sampling_strategy='auto')
     #ros = RandomUnderSampler(sampling_strategy='auto')
-    X_train_imb, Y_train_imb = imb.fit_sample(X_train, Y_train)
-    X_test_imb, Y_test_imb = imb.fit_sample(X_test, Y_test)
-
-    return X_train_imb, X_test_imb, Y_train_imb, Y_test_imb
+    DS_img, DS_lbl = imb.fit_sample(DS_img, DS_lbl)
+    
+    return DS_img, DS_lbl
 
 
 #Dataset Preparation
@@ -140,7 +140,7 @@ def filelist2imglist(filelist):
     
     return DS_img
 
-def datasetgen(classZero, classOne, test_fac):
+def datasetgen(classZero, classOne):
     
     DS_img = []
     DS_lbl = []
@@ -158,12 +158,22 @@ def datasetgen(classZero, classOne, test_fac):
     s = np.arange(DS_img.shape[0])
     np.random.shuffle(s)
     DS_img = DS_img[s]
-    DS_lbl = DS_lbl[s] 
+    DS_lbl = DS_lbl[s]
 
+    return DS_img, DS_lbl
 
-    X_train, X_test, Y_train, Y_test = train_test_split(DS_img,DS_lbl,test_size=test_fac)
+def postprocDS(DS_img):
 
-    return X_train, X_test, Y_train, Y_test
+    DS_img_rs = []
+
+    for image in DS_img:
+        image=image.reshape(50,50,3)
+        DS_img_rs.append(image)
+        
+    DS_img_rs = np.array(DS_img_rs)
+
+    return DS_img_rs
+    
 
 def oneHotencode(Y_train,Y_test):
     Y_trainHot = to_categorical(Y_train, num_classes = 2)
@@ -182,7 +192,10 @@ if halfsample <= len(file_classZero) and halfsample <= len(file_classOne):
     img_classZero = filelist2imglist(file_classZero[0:halfsample])
     img_classOne = filelist2imglist(file_classOne[0:halfsample])
 
-    X_train, X_test, Y_train, Y_test = datasetgen(img_classZero, img_classOne, test_fac)
+    DS_img, DS_lbl = datasetgen(img_classZero, img_classOne)
+    DS_img = postprocDS(DS_img)
+
+    X_train, X_test, Y_train, Y_test = train_test_split(DS_img,DS_lbl,test_size=test_fac)
 
     Y_trainHot, Y_testHot = oneHotencode(Y_train,Y_test)
 
@@ -197,13 +210,21 @@ elif halfsample <= len(file_classZero) and halfsample > len(file_classOne):
 
         os_data = manualoversamp(file_classOne,file_classZero[0:halfsample])
         img_classOne.extend(os_data)
-        X_train, X_test, Y_train, Y_test = datasetgen(img_classZero, img_classOne, test_fac)
+        DS_img,DS_lbl = datasetgen(img_classZero, img_classOne)
+        DS_img = postprocDS(DS_img)
+
+        X_train, X_test, Y_train, Y_test = train_test_split(DS_img,DS_lbl,test_size=test_fac)
+
 
     if (balancing_strategy==1):
         print('Unbalanced Data => IMB Oversampling ClassOne: Strategy B1')
 
-        X_train, X_test, Y_train, Y_test = datasetgen(img_classZero, img_classOne, test_fac)
-        X_train, X_test, Y_train, Y_test = balance_imblearn(X_train,X_test,Y_train,Y_test)
+        DS_img, DS_lbl = datasetgen(img_classZero, img_classOne)
+        DS_img, DS_lbl = balance_imblearn(DS_img, DS_lbl)
+        DS_img = postprocDS(DS_img)
+                
+        X_train, X_test, Y_train, Y_test = train_test_split(DS_img,DS_lbl,test_size=test_fac)
+
 
     Y_trainHot, Y_testHot = oneHotencode(Y_train,Y_test)
 
@@ -219,13 +240,19 @@ elif halfsample > len(file_classZero) and halfsample <= len(file_classOne):
 
         os_data = manualoversamp(file_classZero,file_classOne[0:halfsample])
         img_classZero.extend(os_data)
-        X_train, X_test, Y_train, Y_test = datasetgen(img_classZero, img_classOne, test_fac)
+        DS_img,DS_lbl = datasetgen(img_classZero, img_classOne)
+        DS_img = postprocDS(DS_img)
+
+        X_train, X_test, Y_train, Y_test = train_test_split(DS_img,DS_lbl,test_size=test_fac)
 
     if (balancing_strategy==1):
         print('Unbalanced Data => IMB Oversampling ClassZero: Strategy C1')
 
-        X_train, X_test, Y_train, Y_test = datasetgen(img_classZero, img_classOne, test_fac)
-        X_train, X_test, Y_train, Y_test = balance_imblearn(X_train,X_test,Y_train,Y_test)
+        DS_img, DS_lbl = datasetgen(img_classZero, img_classOne)
+        DS_img, DS_lbl = balance_imblearn(DS_img, DS_lbl)
+        DS_img = postprocDS(DS_img)
+                
+        X_train, X_test, Y_train, Y_test = train_test_split(DS_img,DS_lbl,test_size=test_fac)
 
     Y_trainHot, Y_testHot = oneHotencode(Y_train,Y_test)
 
@@ -241,6 +268,8 @@ print(Y_train.shape)
 print(Y_trainHot.shape)
 print(Y_test.shape)
 print(Y_testHot.shape)
+
+
 
 
 #final data inspection
