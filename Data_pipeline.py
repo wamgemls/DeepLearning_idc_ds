@@ -19,11 +19,11 @@ $1 = imblearn Package
 """
 
 balancing_strategy = 0
-sample_size = 10000
+sample_size = 1000
 test_fac = 0.2
 
-c0_size = 5000
-c1_size = 2000
+c0_size = 700
+c1_size = 300
 
 
 #Data Aquisition
@@ -73,8 +73,8 @@ def giveImg(file_image):
     
 def preprocImg(image):
     image = image/255.0
-    imgFlat = image.reshape(-1)
-    return imgFlat
+    #image = image.reshape(-1)
+    return image
 
 #Image Processing 2
 
