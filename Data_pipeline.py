@@ -18,7 +18,7 @@ $0 = Manual Oversampling
 $1 = imblearn Package
 """
 
-balancing_strategy = 1
+balancing_strategy = 0
 sample_size = 1500
 test_fac = 0.2
 
@@ -91,10 +91,9 @@ def flip2(file_img):
 
 def noisy(file_img):
     img = giveImg(file_img)
-    noisy_img = np.random.poisson(img / 255.0 * 400) / 400 * 255
-    noisy_img = cv2.resize(noisy_img, (50,50))
-    noisy_img = noisy_img.astype(np.uint8)
-    return noisy_img
+    gaussian = np.random.normal(-7, 10, (50,50,3))
+    augmented_img = (img + gaussian).astype(np.uint8)
+    return augmented_img
 
 augmentlist = [flip1, flip2, noisy]
 
@@ -155,6 +154,7 @@ def datasetgen(classZero, classOne):
     DS_lbl=np.array(DS_lbl)
 
     #shuffle
+    
     s = np.arange(DS_img.shape[0])
     np.random.shuffle(s)
     DS_img = DS_img[s]
@@ -268,9 +268,6 @@ print(Y_train.shape)
 print(Y_trainHot.shape)
 print(Y_test.shape)
 print(Y_testHot.shape)
-
-
-
 
 #final data inspection
 
